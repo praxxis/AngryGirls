@@ -1,0 +1,10 @@
+## Interface: 80300
+## Title: Angry Assignments
+## Author: Ermad
+## Version: v1.13.0c
+## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config
+## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, LibCompress, LibWindow-1.1
+
+embeds.xml
+
+Core.lua
