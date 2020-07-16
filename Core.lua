@@ -91,6 +91,39 @@ local VERSION_ValidRaid = 4
 -- Utility Functions --
 -----------------------
 
+local function dump(o)
+	if type(o) == 'table' then
+	   local s = '{ '
+	   for k,v in pairs(o) do
+		  if type(k) ~= 'number' then k = '"'..k..'"' end
+		  s = s .. '['..k..'] = ' .. dump(v) .. ','
+	   end
+	   return s .. '} '
+	else
+	   return tostring(o)
+	end
+end
+
+ local function explode(seperator, content)
+	local t, position
+	t = {}
+	position = 0
+	if (#content == 1) then
+	   return {content}
+	end
+	while true do
+	   local idx = string.find(content, seperator, position, true) -- find the next seperator in the string
+	   if idx ~= nil then -- if "not not" found then..
+		  table.insert(t, string.sub(content, position, idx - 1)) -- Save it in our array.
+		  position = idx + #seperator -- save just after where we found it for searching next time.
+	   else
+		  table.insert(t, string.sub(content, position)) -- Save what's left in our array.
+		  break -- Break at end, as it should be, according to the lua manual.
+	   end
+	end
+	return t
+end
+
 local function selectedLastValue(input)
 	local a = select(-1, strsplit("", input or ""))
 	return tonumber(a)
@@ -996,7 +1029,7 @@ function AngryAssign:CreateWindow()
 end
 
 local function AngryAssign_IconPicker_Clicked(widget, event)
-	local texture
+	local icon
 	if widget:GetUserData('name') then
 		icon = widget:GetUserData('name')
 	else
@@ -1540,7 +1573,7 @@ local function DragHandle_MouseUp(frame)
 	display:StopMovingOrSizing()
 	AngryAssign_State.display.width = display:GetWidth()
 	lwin.SavePosition(display)
-	AngryAssign:UpdateBackdrop()
+	AngryAssign:SyncTextSizeFrames()
 end
 local function Mover_MouseDown(frame) frame:GetParent():StartMoving() end
 local function Mover_MouseUp(frame)
@@ -1578,7 +1611,7 @@ end
 
 function AngryAssign:ShowDisplay()
 	self.display_text:Show()
-	self:UpdateBackdrop()
+	self:SyncTextSizeFrames()
 	AngryAssign_State.display.hidden = false
 end
 
@@ -1595,9 +1628,17 @@ function AngryAssign:ToggleDisplay()
 	end
 end
 
+function AngryAssign:Paginate(direction)
+	if direction == "forward" then
+		AngryAssign_State.currentPage = AngryAssign_State.currentPage + 1
+	else
+		AngryAssign_State.currentPage = AngryAssign_State.currentPage - 1
+	end
+	self:UpdateDisplayed()
+end
 
 function AngryAssign:CreateDisplay()
-	local frame = CreateFrame("Frame", nil, UIParent)
+	local frame = CreateFrame("Frame", "AngryAss", UIParent)
 	frame:SetPoint("CENTER",0,0)
 	frame:SetWidth(AngryAssign_State.display.width or 300)
 	frame:SetHeight(1)
@@ -1612,7 +1653,7 @@ function AngryAssign:CreateDisplay()
 	lwin.RegisterConfig(frame, AngryAssign_State.display)
 	lwin.RestorePosition(frame)
 
-	local text = CreateFrame("ScrollingMessageFrame", nil, frame)
+	local text = CreateFrame("ScrollingMessageFrame", "AngryAssScrollingMessage", frame)
 	text:SetIndentedWordWrap(true)
 	text:SetJustifyH("LEFT")
 	text:SetFading(false)
@@ -1625,7 +1666,21 @@ function AngryAssign:CreateDisplay()
 	backdrop:SetDrawLayer("BACKGROUND")
 	self.backdrop = backdrop
 
-	local mover = CreateFrame("Frame", nil, frame)
+	local clickOverlay = CreateFrame("Frame", "AngryAssClickOverlay", text)
+	clickOverlay:SetAllPoints(text)
+	clickOverlay:SetScript("OnMouseDown", function (_, button)
+		local direction
+		if button == "LeftButton" then
+			direction = "forward"
+		else
+			direction = "backward"
+		end
+		AngryAssign:Paginate(direction)
+	end)
+	self.clickOverlay = clickOverlay
+
+	local mover = CreateFrame("Frame", "AngryAssMover", frame)
+	mover:SetFrameLevel(clickOverlay:GetFrameLevel() + 10)
 	mover:SetPoint("LEFT",0,0)
 	mover:SetPoint("RIGHT",0,0)
 	mover:SetHeight(16)
@@ -1644,7 +1699,7 @@ function AngryAssign:CreateDisplay()
 	label:SetPoint("RIGHT", -38, 0)
 	label:SetText("Angry Assignments")
 
-	local direction = CreateFrame("Button", nil, mover)
+	local direction = CreateFrame("Button", "AngryAssDirection", mover)
 	direction:SetPoint("LEFT", 2, 0)
 	direction:SetWidth(16)
 	direction:SetHeight(16)
@@ -1654,7 +1709,7 @@ function AngryAssign:CreateDisplay()
 	direction:SetScript("OnClick", function() AngryAssign:ToggleDirection() end)
 	self.direction_button = direction
 
-	local lock = CreateFrame("Button", nil, mover)
+	local lock = CreateFrame("Button", "AngryAssLock", mover)
 	lock:SetNormalTexture("Interface\\LFGFRAME\\UI-LFG-ICON-LOCK")
 	lock:GetNormalTexture():SetTexCoord(0, 0.71875, 0, 0.875)
 	lock:SetPoint("LEFT", direction, "RIGHT", 4, 0)
@@ -1662,7 +1717,7 @@ function AngryAssign:CreateDisplay()
 	lock:SetHeight(14)
 	lock:SetScript("OnClick", function() AngryAssign:ToggleLock() end)
 
-	local drag = CreateFrame("Frame", nil, mover)
+	local drag = CreateFrame("Frame", "AngryAssDrag", mover)
 	drag:SetFrameLevel(mover:GetFrameLevel() + 10)
 	drag:SetWidth(16)
 	drag:SetHeight(16)
@@ -1671,6 +1726,7 @@ function AngryAssign:CreateDisplay()
 	drag:SetScript("OnMouseDown", DragHandle_MouseDown)
 	drag:SetScript("OnMouseUp", DragHandle_MouseUp)
 	drag:SetAlpha(0.5)
+
 	local dragtex = drag:CreateTexture(nil, "OVERLAY")
 	dragtex:SetTexture("Interface\\AddOns\\AngryAssignments\\Textures\\draghandle")
 	dragtex:SetWidth(16)
@@ -1750,7 +1806,7 @@ function AngryAssign:UpdateDirection()
 	self:UpdateDisplayed()
 end
 
-function AngryAssign:UpdateBackdrop()
+function AngryAssign:SyncTextSizeFrames()
 	local first, last
 	for lineIndex, visibleLine in ipairs(self.display_text.visibleLines) do
 		local messageInfo = self.display_text.historyBuffer:GetEntryAtIndex(lineIndex)
@@ -1760,6 +1816,27 @@ function AngryAssign:UpdateBackdrop()
 		end
 	end
 
+	self:ResizeBackdrop(first, last)
+	self:ResizeClickOverlay(first, last)
+end
+
+function AngryAssign:ResizeClickOverlay(first, last)
+	if first and last  then
+		self.clickOverlay:ClearAllPoints()
+		if AngryAssign_State.directionUp then
+			self.clickOverlay:SetPoint("TOPLEFT", last, "TOPLEFT", -4, 4)
+			self.clickOverlay:SetPoint("BOTTOMRIGHT", first, "BOTTOMRIGHT", 4, -4)
+		else
+			self.clickOverlay:SetPoint("TOPLEFT", first, "TOPLEFT", -4, 4)
+			self.clickOverlay:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", 4, -4)
+		end
+		self.clickOverlay:Show()
+	else
+		self.clickOverlay:Hide()
+	end
+end
+
+function AngryAssign:ResizeBackdrop(first, last)
 	if first and last and self:GetConfig('backdropShow') then
 		self.backdrop:ClearAllPoints()
 		if AngryAssign_State.directionUp then
@@ -1797,7 +1874,7 @@ function AngryAssign:UpdateMedia()
 		end
 	end
 
-	self:UpdateBackdrop()
+	self:SyncTextSizeFrames()
 end
 
 local updateFlasher, updateFlasher2 = nil, nil
@@ -1890,18 +1967,15 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('|corange'), "|cffff9d00")
 			:gsub(ci_pattern('|cpink'), "|cfff64c97")
 			:gsub(ci_pattern('|cpurple'), "|cffdc44eb")
-			:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
 			:gsub(ci_pattern('|cdruid'), "|cffff7d0a")
 			:gsub(ci_pattern('|chunter'), "|cffabd473")
 			:gsub(ci_pattern('|cmage'), "|cff40C7eb")
-			:gsub(ci_pattern('|cmonk'), "|cff00ff96")
 			:gsub(ci_pattern('|cpaladin'), "|cfff58cba")
 			:gsub(ci_pattern('|cpriest'), "|cffffffff")
 			:gsub(ci_pattern('|crogue'), "|cfffff569")
 			:gsub(ci_pattern('|cshaman'), "|cff0070de")
 			:gsub(ci_pattern('|cwarlock'), "|cff8787ed")
 			:gsub(ci_pattern('|cwarrior'), "|cffc79c6e")
-			:gsub(ci_pattern('|cdemonhunter'), "|cffa330c9")
 			:gsub("([^%s%p]+)", function(word)
 				local word_lower = word:lower()
 				for _, token in ipairs(highlights) do
@@ -1913,12 +1987,6 @@ function AngryAssign:UpdateDisplayed()
 			end)
 			:gsub(ci_pattern('{spell%s+(%d+)}'), function(id)
 				return GetSpellLink(id)
-			end)
-			:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
-				return select(5, EJ_GetEncounterInfo(id))
-			end)
-			:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
-				return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 			end)
 			:gsub(ci_pattern('{star}'), "{rt1}")
 			:gsub(ci_pattern('{circle}'), "{rt2}")
@@ -1932,8 +2000,8 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{rt([1-8])}'), "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
 			:gsub(ci_pattern('{healthstone}'), "{hs}")
 			:gsub(ci_pattern('{hs}'), "|TInterface\\Icons\\INV_Stone_04:0|t")
-			:gsub(ci_pattern('{bloodlust}'), "{bl}")
-			:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
+			-- :gsub(ci_pattern('{bloodlust}'), "{bl}")
+			-- :gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
 			:gsub(ci_pattern('{icon%s+(%d+)}'), function(id)
 				return format("|T%s:0|t", select(3, GetSpellInfo(tonumber(id))) )
 			end)
@@ -1942,8 +2010,8 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{tank}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:0:19:22:41|t")
 			:gsub(ci_pattern('{healer}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:1:20|t")
 			:gsub(ci_pattern('{dps}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:22:41|t")
-			:gsub(ci_pattern('{hero}'), "{heroism}")
-			:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
+			-- :gsub(ci_pattern('{hero}'), "{heroism}")
+			-- :gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
 			:gsub(ci_pattern('{hunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:16:32|t")
 			:gsub(ci_pattern('{warrior}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:0:16|t")
 			:gsub(ci_pattern('{rogue}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:0:16|t")
@@ -1951,14 +2019,23 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{priest}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:16:32|t")
 			:gsub(ci_pattern('{warlock}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:16:32|t")
 			:gsub(ci_pattern('{paladin}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:32:48|t")
-			:gsub(ci_pattern('{deathknight}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:32:48|t")
 			:gsub(ci_pattern('{druid}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:0:16|t")
-			:gsub(ci_pattern('{monk}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:32:48|t")
 			:gsub(ci_pattern('{shaman}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:16:32|t")
-			:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
 
 		self.display_text:Clear()
-		local lines = { strsplit("\n", text) }
+
+		local pages = explode("{page}", text)
+
+		if pages[AngryAssign_State.currentPage] == nil then
+			if AngryAssign_State.currentPage == nil or AngryAssign_State.currentPage > 1 then
+				AngryAssign_State.currentPage = 1
+			else
+				AngryAssign_State.currentPage = #pages
+			end
+		end
+
+		local lines = { strsplit("\n", pages[AngryAssign_State.currentPage]) }
+
 		local lines_count = #lines
 		for i = 1, lines_count do
 			local line
@@ -1973,7 +2050,7 @@ function AngryAssign:UpdateDisplayed()
 	else
 		self.display_text:Clear()
 	end
-	self:UpdateBackdrop()
+	self:SyncTextSizeFrames()
 end
 
 function AngryAssign_OutputDisplayed()
@@ -2005,27 +2082,18 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('|corange'), "")
 			:gsub(ci_pattern('|cpink'), "")
 			:gsub(ci_pattern('|cpurple'), "")
-			:gsub(ci_pattern('|cdeathknight'), "")
 			:gsub(ci_pattern('|cdruid'), "")
 			:gsub(ci_pattern('|chunter'), "")
 			:gsub(ci_pattern('|cmage'), "")
-			:gsub(ci_pattern('|cmonk'), "")
 			:gsub(ci_pattern('|cpaladin'), "")
 			:gsub(ci_pattern('|cpriest'), "")
 			:gsub(ci_pattern('|crogue'), "")
 			:gsub(ci_pattern('|cshaman'), "")
 			:gsub(ci_pattern('|cwarlock'), "")
 			:gsub(ci_pattern('|cwarrior'), "")
-			:gsub(ci_pattern('|cdemonhunter'), "")
 			:gsub(ci_pattern('|c%w?%w?%w?%w?%w?%w?%w?%w?'), "")
 			:gsub(ci_pattern('{spell%s+(%d+)}'), function(id)
 				return GetSpellLink(id)
-			end)
-			:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
-				return select(5, EJ_GetEncounterInfo(id))
-			end)
-			:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
-				return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 			end)
 			:gsub(ci_pattern('{star}'), "{rt1}")
 			:gsub(ci_pattern('{circle}'), "{rt2}")
@@ -2038,15 +2106,15 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{skull}'), "{rt8}")
 			:gsub(ci_pattern('{healthstone}'), "{hs}")
 			:gsub(ci_pattern('{hs}'), 'Healthstone')
-			:gsub(ci_pattern('{bloodlust}'), "{bl}")
-			:gsub(ci_pattern('{bl}'), 'Bloodlust')
+			-- :gsub(ci_pattern('{bloodlust}'), "{bl}")
+			-- :gsub(ci_pattern('{bl}'), 'Bloodlust')
 			:gsub(ci_pattern('{icon%s+([%w_]+)}'), '')
 			:gsub(ci_pattern('{damage}'), 'Damage')
 			:gsub(ci_pattern('{tank}'), 'Tanks')
 			:gsub(ci_pattern('{healer}'), 'Healers')
 			:gsub(ci_pattern('{dps}'), 'Damage')
-			:gsub(ci_pattern('{hero}'), "{heroism}")
-			:gsub(ci_pattern('{heroism}'), 'Heroism')
+			-- :gsub(ci_pattern('{hero}'), "{heroism}")
+			-- :gsub(ci_pattern('{heroism}'), 'Heroism')
 			:gsub(ci_pattern('{hunter}'), LOCALIZED_CLASS_NAMES_MALE["HUNTER"])
 			:gsub(ci_pattern('{warrior}'), LOCALIZED_CLASS_NAMES_MALE["WARRIOR"])
 			:gsub(ci_pattern('{rogue}'), LOCALIZED_CLASS_NAMES_MALE["ROGUE"])
@@ -2054,11 +2122,9 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{priest}'), LOCALIZED_CLASS_NAMES_MALE["PRIEST"])
 			:gsub(ci_pattern('{warlock}'), LOCALIZED_CLASS_NAMES_MALE["WARLOCK"])
 			:gsub(ci_pattern('{paladin}'), LOCALIZED_CLASS_NAMES_MALE["PALADIN"])
-			:gsub(ci_pattern('{deathknight}'), LOCALIZED_CLASS_NAMES_MALE["DEATHKNIGHT"])
 			:gsub(ci_pattern('{druid}'), LOCALIZED_CLASS_NAMES_MALE["DRUID"])
-			:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
 			:gsub(ci_pattern('{shaman}'), LOCALIZED_CLASS_NAMES_MALE["SHAMAN"])
-			:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
+			:gsub(ci_pattern('{page}'), "")
 
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
@@ -2117,7 +2183,7 @@ end
 local blizOptionsPanel
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then
-		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false }
+		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false, currentPage = 1 }
 	end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 	if AngryAssign_Config == nil then AngryAssign_Config = { } end
@@ -2331,7 +2397,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return self:GetConfig('backdropShow') end,
 						set = function(info, val)
 							self:SetConfig('backdropShow', val)
-							self:UpdateBackdrop()
+							self:SyncTextSizeFrames()
 						end
 					},
 					backdropcolor = {
