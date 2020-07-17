@@ -1679,6 +1679,24 @@ function AngryAssign:CreateDisplay()
 	end)
 	self.clickOverlay = clickOverlay
 
+	local pagination = CreateFrame("Frame", "AngryAssPagination", clickOverlay)
+	pagination:SetPoint("TOPRIGHT", -4, -4)
+	pagination:SetHeight(1)
+	pagination:SetWidth(1)
+	pagination:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background" })
+	pagination:SetBackdropColor(0, 1, 0, 1)
+	self.pagination = pagination
+
+	local paginationText = pagination:CreateFontString()
+	local fontName = LSM:Fetch("font", AngryAssign:GetConfig('fontName'))
+	local fontHeight = AngryAssign:GetConfig('fontHeight')
+	local fontFlags = AngryAssign:GetConfig('fontFlags')
+
+	paginationText:SetTextColor( HexToRGB(self:GetConfig('color')) )
+	paginationText:SetFont(fontName, fontHeight, fontFlags)
+	paginationText:SetPoint("TOPRIGHT")
+	self.paginationText = paginationText
+
 	local mover = CreateFrame("Frame", "AngryAssMover", frame)
 	mover:SetFrameLevel(clickOverlay:GetFrameLevel() + 10)
 	mover:SetPoint("LEFT",0,0)
@@ -2046,6 +2064,13 @@ function AngryAssign:UpdateDisplayed()
 			end
 			if line == "" then line = " " end
 			self.display_text:AddMessage(line)
+		end
+
+		if #pages > 1 then
+			self.paginationText:SetText("("..AngryAssign_State.currentPage.."/"..#pages..")")
+			self.paginationText:Show()
+		else
+			self.paginationText:Hide()
 		end
 	else
 		self.display_text:Clear()
