@@ -14,8 +14,8 @@ BINDING_NAME_AngryAssign_SHOW_DISPLAY = "Show Display"
 BINDING_NAME_AngryAssign_HIDE_DISPLAY = "Hide Display"
 BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 
-local AngryAssign_Version = 'v1.13.0c'
-local AngryAssign_Timestamp = '20200205162926'
+local AngryAssign_Version = 'v1.14.0'
+local AngryAssign_Timestamp = '20200716042069'
 
 local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 
@@ -2018,8 +2018,6 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{rt([1-8])}'), "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
 			:gsub(ci_pattern('{healthstone}'), "{hs}")
 			:gsub(ci_pattern('{hs}'), "|TInterface\\Icons\\INV_Stone_04:0|t")
-			-- :gsub(ci_pattern('{bloodlust}'), "{bl}")
-			-- :gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
 			:gsub(ci_pattern('{icon%s+(%d+)}'), function(id)
 				return format("|T%s:0|t", select(3, GetSpellInfo(tonumber(id))) )
 			end)
@@ -2028,8 +2026,6 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{tank}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:0:19:22:41|t")
 			:gsub(ci_pattern('{healer}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:1:20|t")
 			:gsub(ci_pattern('{dps}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:22:41|t")
-			-- :gsub(ci_pattern('{hero}'), "{heroism}")
-			-- :gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
 			:gsub(ci_pattern('{hunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:16:32|t")
 			:gsub(ci_pattern('{warrior}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:0:16|t")
 			:gsub(ci_pattern('{rogue}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:0:16|t")
@@ -2039,6 +2035,25 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{paladin}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:32:48|t")
 			:gsub(ci_pattern('{druid}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:0:16|t")
 			:gsub(ci_pattern('{shaman}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:16:32|t")
+
+		if not isClassic then
+			text = text:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
+				:gsub(ci_pattern('|cmonk'), "|cff00ff96")
+				:gsub(ci_pattern('|cdemonhunter'), "|cffa330c9")
+				:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
+					return select(5, EJ_GetEncounterInfo(id))
+				end)
+				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
+					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
+				end)
+				:gsub(ci_pattern('{hero}'), "{heroism}")
+				:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
+				:gsub(ci_pattern('{bloodlust}'), "{bl}")
+				:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
+				:gsub(ci_pattern('{deathknight}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:32:48|t")
+				:gsub(ci_pattern('{monk}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:32:48|t")
+				:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
+		end
 
 		self.display_text:Clear()
 
@@ -2131,15 +2146,11 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{skull}'), "{rt8}")
 			:gsub(ci_pattern('{healthstone}'), "{hs}")
 			:gsub(ci_pattern('{hs}'), 'Healthstone')
-			-- :gsub(ci_pattern('{bloodlust}'), "{bl}")
-			-- :gsub(ci_pattern('{bl}'), 'Bloodlust')
 			:gsub(ci_pattern('{icon%s+([%w_]+)}'), '')
 			:gsub(ci_pattern('{damage}'), 'Damage')
 			:gsub(ci_pattern('{tank}'), 'Tanks')
 			:gsub(ci_pattern('{healer}'), 'Healers')
 			:gsub(ci_pattern('{dps}'), 'Damage')
-			-- :gsub(ci_pattern('{hero}'), "{heroism}")
-			-- :gsub(ci_pattern('{heroism}'), 'Heroism')
 			:gsub(ci_pattern('{hunter}'), LOCALIZED_CLASS_NAMES_MALE["HUNTER"])
 			:gsub(ci_pattern('{warrior}'), LOCALIZED_CLASS_NAMES_MALE["WARRIOR"])
 			:gsub(ci_pattern('{rogue}'), LOCALIZED_CLASS_NAMES_MALE["ROGUE"])
@@ -2150,6 +2161,25 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{druid}'), LOCALIZED_CLASS_NAMES_MALE["DRUID"])
 			:gsub(ci_pattern('{shaman}'), LOCALIZED_CLASS_NAMES_MALE["SHAMAN"])
 			:gsub(ci_pattern('{page}'), "")
+
+		if not isClassic then
+			output = output:gsub(ci_pattern('|cdeathknight'), "")
+				:gsub(ci_pattern('|cmonk'), "")
+				:gsub(ci_pattern('|cdemonhunter'), "")
+				:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
+					return select(5, EJ_GetEncounterInfo(id))
+				end)
+				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
+					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
+				end)
+				:gsub(ci_pattern('{bloodlust}'), "{bl}")
+				:gsub(ci_pattern('{bl}'), 'Bloodlust')
+				:gsub(ci_pattern('{hero}'), "{heroism}")
+				:gsub(ci_pattern('{heroism}'), 'Heroism')
+				:gsub(ci_pattern('{deathknight}'), LOCALIZED_CLASS_NAMES_MALE["DEATHKNIGHT"])
+				:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
+				:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
+		end
 
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
