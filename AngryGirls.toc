@@ -1,5 +1,5 @@
 ## Interface: 80300
-## Title: Angry Assignments
+## Title: Angry Girls
 ## Author: Ermad
 ## Version: v1.14.0
 ## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config

@@ -6,7 +6,7 @@ local lwin = LibStub("LibWindow-1.1")
 local libCE = libC:GetAddonEncodeTable()
 local LSM = LibStub("LibSharedMedia-3.0")
 
-BINDING_HEADER_AngryAssign = "Angry Assignments"
+BINDING_HEADER_AngryAssign = "Angry Girls"
 BINDING_NAME_AngryAssign_WINDOW = "Toggle Window"
 BINDING_NAME_AngryAssign_LOCK = "Toggle Lock"
 BINDING_NAME_AngryAssign_DISPLAY = "Toggle Display"
@@ -14,13 +14,13 @@ BINDING_NAME_AngryAssign_SHOW_DISPLAY = "Show Display"
 BINDING_NAME_AngryAssign_HIDE_DISPLAY = "Hide Display"
 BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 
-local AngryAssign_Version = 'v1.14.0'
-local AngryAssign_Timestamp = '20200716042069'
+local AngryAssign_Version = '@v1.0.0'
+local AngryAssign_Timestamp = '@20200716042069'
 
 local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 
 local protocolVersion = 1
-local comPrefix = "AnAss"..protocolVersion
+local comPrefix = "AngryGirls"..protocolVersion
 local updateFrequency = 2
 local pageLastUpdate = {}
 local pageTimerId = {}
@@ -314,7 +314,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 
 		if localTimestamp ~= "dev" and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then
-			self:Print("Your version of Angry Assignments is out of date! Download the latest version from curse.com.")
+			self:Print("Your version of Angry Girls is out of date! Download the latest version from curse.com.")
 			warnedOOD = true
 		end
 
@@ -888,7 +888,7 @@ end
 
 function AngryAssign:CreateWindow()
 	local window = AceGUI:Create("Frame")
-	window:SetTitle("Angry Assignments")
+	window:SetTitle("Angry Girls")
 	window:SetStatusText("")
 	window:SetLayout("Flow")
 	if AngryAssign:GetConfig('scale') then window.frame:SetScale( AngryAssign:GetConfig('scale') ) end
@@ -1715,7 +1715,7 @@ function AngryAssign:CreateDisplay()
 	label:SetJustifyH("CENTER")
 	label:SetPoint("LEFT", 38, 0)
 	label:SetPoint("RIGHT", -38, 0)
-	label:SetText("Angry Assignments")
+	label:SetText("Angry Girls")
 
 	local direction = CreateFrame("Button", "AngryAssDirection", mover)
 	direction:SetPoint("LEFT", 2, 0)
@@ -2262,7 +2262,7 @@ function AngryAssign:OnInitialize()
 	if ver:sub(1,1) == "@" then ver = "dev" end
 
 	local options = {
-		name = "Angry Assignments "..ver,
+		name = "Angry Girls "..ver,
 		handler = AngryAssign,
 		type = "group",
 		args = {
@@ -2630,7 +2630,7 @@ function AngryAssign:OnInitialize()
 	self:RegisterChatCommand("aa", "ChatCommand")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("AngryAssign", options)
 
-	blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Assignments")
+	blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Girls")
 	blizOptionsPanel.default = function() self:RestoreDefaults() end
 end
 

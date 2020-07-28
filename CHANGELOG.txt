@@ -1,9 +1,9 @@
-## v1.14.0
+## Angry Girls v1.0.0
 
 * Added new {page} token, which allows client side pagination of pages
 * Split Classic and post-Classic string formatting, fixing the `output` command
 
-## v1.13.0
+## Angry Assignments v1.13.0
 
 * ToC bump for 8.3
 
