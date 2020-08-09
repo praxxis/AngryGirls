@@ -19,7 +19,7 @@ local AngryAssign_Timestamp = '@20200716042069'
 
 local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 
-local protocolVersion = 1
+local protocolVersion = 2
 local comPrefix = "AngryGirls"..protocolVersion
 local updateFrequency = 2
 local pageLastUpdate = {}
@@ -50,10 +50,14 @@ local currentGroup = nil
 -- 		[Id] = { Id = 1231, Name = "Name", CategoryId = 123 },
 --		...
 -- 	}
+-- 	AngryAssign_Variables = {
+-- 		[1] = { "variable", "replacement" },
+--		...
+-- 	}
 --
 -- Format for our addon communication
 --
--- { "PAGE", [Id], [Last Update Timestamp], [Name], [Contents], [Last Update Unique Id] }
+-- { "PAGE", [Id], [Last Update Timestamp], [Name], [Contents], [Last Update Unique Id], [Variables] }
 -- Sent when a page is updated. Id is a random unique value. Unique Id is hash of page contents. Uses RAID.
 --
 -- { "REQUEST_PAGE", [Id] }
@@ -76,6 +80,7 @@ local PAGE_Updated = 3
 local PAGE_Name = 4
 local PAGE_Contents = 5
 local PAGE_UpdateId = 6
+local PAGE_Variables = 7
 
 local REQUEST_PAGE_Id = 2
 
@@ -238,10 +243,13 @@ function AngryAssign:ProcessMessage(sender, data)
 			if data[PAGE_UpdateId] and page.UpdateId == data[PAGE_UpdateId] then return end -- The version received is same as the one we already have
 
 			contents_updated = page.Contents ~= data[PAGE_Contents]
+
+			AngryAssign_Variables = data[PAGE_Variables]
+
 			page.Name = data[PAGE_Name]
 			page.Contents = data[PAGE_Contents]
 			page.Updated = data[PAGE_Updated]
-			page.UpdateId = data[PAGE_UpdateId] or self:Hash(page.Name, page.Contents)
+			page.UpdateId = data[PAGE_UpdateId] or self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
 
 			if self:SelectedId() == id then
 				self:SelectedUpdated(sender)
@@ -249,12 +257,15 @@ function AngryAssign:ProcessMessage(sender, data)
 			end
 		else
 			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], UpdateId = data[PAGE_UpdateId], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
+			AngryAssign_Variables = data[PAGE_Variables]
 		end
+
 		if AngryAssign_State.displayed == id then
 			self:UpdateDisplayed()
 			self:ShowDisplay()
 			if contents_updated then self:DisplayUpdateNotification() end
 		end
+
 		self:UpdateTree()
 
 	elseif cmd == "DISPLAY" then
@@ -356,8 +367,12 @@ function AngryAssign:SendPageMessage(id)
 
 	local page = AngryAssign_Pages[ id ]
 	if not page then error("Can't send page, does not exist"); return end
-	if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
-	self:SendOutMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents, [PAGE_UpdateId] = page.UpdateId })
+
+	if not page.UpdateId then
+		page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
+	end
+
+	self:SendOutMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents, [PAGE_UpdateId] = page.UpdateId, [PAGE_Variables] = AngryAssign_Variables })
 end
 
 function AngryAssign:SendDisplay(id, force)
@@ -387,7 +402,10 @@ function AngryAssign:SendDisplayMessage(id)
 	if not page then
 		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil })
 	else
-		if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
+		if not page.UpdateId then
+			page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
+		end
+
 		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId })
 	end
 end
@@ -897,7 +915,7 @@ function AngryAssign:CreateWindow()
 	AngryAssign.window = window
 
 	AngryAssign_Window = window.frame
-	window.frame:SetMinResize(700, 400)
+	window.frame:SetMinResize(750, 400)
 	window.frame:SetFrameStrata("HIGH")
 	window.frame:SetFrameLevel(1)
 	window.frame:SetClampedToScreen(true)
@@ -1012,6 +1030,16 @@ function AngryAssign:CreateWindow()
 	window:AddChild(button_add_cat)
 	window.button_add_cat = button_add_cat
 
+	local button_variables = AceGUI:Create("Button")
+	button_variables:SetText("Set variables")
+	button_variables:SetWidth(120)
+	button_variables:SetHeight(19)
+	button_variables:ClearAllPoints()
+	button_variables:SetPoint("BOTTOMLEFT", button_add_cat.frame, "BOTTOMRIGHT", 5, 0)
+	button_variables:SetCallback("OnClick", function() AngryAssign:ToggleVariablesDisplay() end)
+	window:AddChild(button_variables)
+	window.button_variables = button_variables
+
 	local button_clear = AceGUI:Create("Button")
 	button_clear:SetText("Clear")
 	button_clear:SetWidth(80)
@@ -1025,7 +1053,71 @@ function AngryAssign:CreateWindow()
 	self:UpdateSelected(true)
 	self:UpdateMedia()
 
-	--self:CreateIconPicker()
+	self:CreateVariablesWindow()
+end
+
+function AngryAssign:CreateVariablesWindow()
+	local window = AceGUI:Create("Frame")
+	window:Hide()
+
+	window:SetTitle("Variables")
+	window:SetStatusText("Enter a string and what that string should be replaced with, one per line")
+	window:SetLayout("Flow")
+	window.frame:SetMinResize(750, 400)
+	window.frame:SetFrameStrata("HIGH")
+	window.frame:SetFrameLevel(1)
+	window.frame:SetClampedToScreen(true)
+	if AngryAssign:GetConfig('scale') then window.frame:SetScale( AngryAssign:GetConfig('scale') ) end
+
+	AngryAssign.variablesWindow = window
+
+	AngryAssign_VariablesWindow = window.frame
+	tinsert(UISpecialFrames, "AngryAssign_VariablesWindow")
+
+	local text = AceGUI:Create("MultiLineEditBox")
+	text:SetLabel(nil)
+	text:SetFullWidth(true)
+	text:SetFullHeight(true)
+	text:DisableButton(true)
+	text:SetText(AngryAssign:VariablesToString())
+
+	window:AddChild(text)
+
+	window:SetCallback("OnClose", function() AngryAssign:SaveVariables(text:GetText()) end)
+	window:SetCallback("OnShow", function() text:SetText(AngryAssign:VariablesToString()) end)
+end
+
+function AngryAssign:ToggleVariablesDisplay()
+	if self.variablesWindow:IsVisible() then
+		self.variablesWindow:Hide()
+	else
+		self.variablesWindow:Show()
+	end
+end
+
+function AngryAssign:SaveVariables(text)
+	local tmp = {}
+
+	for _,v in ipairs({ strsplit("\n", text) }) do
+		if v:trim() ~= "" then
+			local var, str = string.match(v, "(%w+)%s+(.+)")
+			if var and var:trim() ~= "" and str and str:trim() ~= "" then
+				tinsert(tmp, {var, str})
+			end
+		end
+	end
+
+	AngryAssign_Variables = tmp
+end
+
+function AngryAssign:VariablesToString()
+	local s = ""
+	for _,v in ipairs(AngryAssign_Variables) do
+		if v[1] and v[2] then
+			s = s .. v[1] .. " " .. v[2] .. "\n"
+		end
+	end
+	return s
 end
 
 local function AngryAssign_IconPicker_Clicked(widget, event)
@@ -1306,11 +1398,13 @@ function AngryAssign:GetCat(id)
 	return AngryAssign_Categories[id]
 end
 
-function AngryAssign:Hash(name, contents)
+function AngryAssign:Hash(name, contents, variables)
 	local code = libC:fcs32init()
 	code = libC:fcs32update(code, name)
 	code = libC:fcs32update(code, "\n")
 	code = libC:fcs32update(code, contents)
+	code = libC:fcs32update(code, "\n")
+	code = libC:fcs32update(code, variables)
 	return libC:fcs32final(code)
 end
 
@@ -1318,7 +1412,7 @@ function AngryAssign:CreatePage(name)
 	if not self:PermissionCheck() then return end
 	local id = self:Hash("page", math.random(2000000000))
 
-	AngryAssign_Pages[id] = { Id = id, Updated = time(), UpdateId = self:Hash(name, ""), Name = name, Contents = "" }
+	AngryAssign_Pages[id] = { Id = id, Updated = time(), UpdateId = self:Hash(name, "", AngryAssign:VariablesToString()), Name = name, Contents = "" }
 	self:UpdateTree(id)
 	self:SendPage(id, true)
 end
@@ -1329,7 +1423,7 @@ function AngryAssign:RenamePage(id, name)
 
 	page.Name = name
 	page.Updated = time()
-	page.UpdateId = self:Hash(page.Name, page.Contents)
+	page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
 
 	self:SendPage(id, true)
 	self:UpdateTree()
@@ -1446,7 +1540,7 @@ function AngryAssign:UpdateContents(id, value)
 	page.Contents = new_content
 	page.Backup = new_content
 	page.Updated = time()
-	page.UpdateId = self:Hash(page.Name, page.Contents)
+	page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
 
 	self:SendPage(id, true)
 	self:UpdateSelected(true)
@@ -1975,6 +2069,7 @@ function AngryAssign:UpdateDisplayed()
 				tinsert(highlights, token)
 			end
 		end
+
 		local highlightHex = self:GetConfig('highlightColor')
 
 		text = text:gsub("||", "|")
@@ -2055,6 +2150,10 @@ function AngryAssign:UpdateDisplayed()
 				:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
 		end
 
+		for _, v in ipairs(AngryAssign_Variables) do
+			text = text:gsub("{"..v[1].."}", v[2])
+		end
+
 		self.display_text:Clear()
 
 		local pages = explode("{page}", text)
@@ -2113,6 +2212,7 @@ function AngryAssign:OutputDisplayed(id)
 	if channel and page then
 		local output = page.Contents
 
+		-- TODO
 		output = output:gsub("||", "|")
 			:gsub(ci_pattern('|r'), "")
 			:gsub(ci_pattern('|cblue'), "")
@@ -2256,6 +2356,11 @@ function AngryAssign:OnInitialize()
 				cat.Children = nil
 			end
 		end
+	end
+	if AngryAssign_Variables == nil then
+		AngryAssign_Variables = { }
+		AngryAssign_Variables[1] = {"tank1", "Daxxiz"}
+		AngryAssign_Variables[2] = {"mage1", "Praxxis"}
 	end
 
 	local ver = AngryAssign_Version
