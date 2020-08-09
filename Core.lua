@@ -1083,7 +1083,10 @@ function AngryAssign:CreateVariablesWindow()
 
 	window:AddChild(text)
 
-	window:SetCallback("OnClose", function() AngryAssign:SaveVariables(text:GetText()) end)
+	window:SetCallback("OnClose", function()
+		AngryAssign:SaveVariables(text:GetText())
+		AngryAssign_DisplayPage()
+	end)
 	window:SetCallback("OnShow", function() text:SetText(AngryAssign:VariablesToString()) end)
 end
 
@@ -2055,6 +2058,14 @@ function AngryAssign:UpdateDisplayedIfNewGroup()
 	end
 end
 
+function AngryAssign:ReplaceVariables(text)
+	for _, v in ipairs(AngryAssign_Variables) do
+		text = text:gsub("{"..v[1].."}", v[2])
+	end
+
+	return text
+end
+
 function AngryAssign:UpdateDisplayed()
 	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
 	if page then
@@ -2150,9 +2161,7 @@ function AngryAssign:UpdateDisplayed()
 				:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
 		end
 
-		for _, v in ipairs(AngryAssign_Variables) do
-			text = text:gsub("{"..v[1].."}", v[2])
-		end
+		text = AngryAssign:ReplaceVariables(text)
 
 		self.display_text:Clear()
 
@@ -2212,7 +2221,6 @@ function AngryAssign:OutputDisplayed(id)
 	if channel and page then
 		local output = page.Contents
 
-		-- TODO
 		output = output:gsub("||", "|")
 			:gsub(ci_pattern('|r'), "")
 			:gsub(ci_pattern('|cblue'), "")
@@ -2280,6 +2288,8 @@ function AngryAssign:OutputDisplayed(id)
 				:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
 				:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
 		end
+
+		output = AngryAssign:ReplaceVariables(output)
 
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
