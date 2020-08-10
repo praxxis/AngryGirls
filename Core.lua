@@ -1085,7 +1085,9 @@ function AngryAssign:CreateVariablesWindow()
 
 	window:SetCallback("OnClose", function()
 		AngryAssign:SaveVariables(text:GetText())
-		AngryAssign_DisplayPage()
+		if AngryAssign:SelectedId() then
+			AngryAssign_DisplayPage()
+		end
 	end)
 	window:SetCallback("OnShow", function() text:SetText(AngryAssign:VariablesToString()) end)
 end
@@ -1406,8 +1408,10 @@ function AngryAssign:Hash(name, contents, variables)
 	code = libC:fcs32update(code, name)
 	code = libC:fcs32update(code, "\n")
 	code = libC:fcs32update(code, contents)
-	code = libC:fcs32update(code, "\n")
-	code = libC:fcs32update(code, variables)
+	if (variables) then
+		code = libC:fcs32update(code, "\n")
+		code = libC:fcs32update(code, variables)
+	end
 	return libC:fcs32final(code)
 end
 
