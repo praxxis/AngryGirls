@@ -2,6 +2,8 @@
 
 * Added new {page} token, which allows client side pagination of pages
 * Split Classic and post-Classic string formatting, fixing the `output` command
+* Add Variables
+* Bug fixes
 
 ## Angry Assignments v1.13.0
 

@@ -1031,7 +1031,7 @@ function AngryAssign:CreateWindow()
 	window.button_add_cat = button_add_cat
 
 	local button_variables = AceGUI:Create("Button")
-	button_variables:SetText("Set variables")
+	button_variables:SetText("Set Variables")
 	button_variables:SetWidth(120)
 	button_variables:SetHeight(19)
 	button_variables:ClearAllPoints()
