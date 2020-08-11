@@ -2145,6 +2145,9 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{paladin}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:32:48|t")
 			:gsub(ci_pattern('{druid}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:0:16|t")
 			:gsub(ci_pattern('{shaman}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:16:32|t")
+			:gsub(ci_pattern('{elemental}'), "|T136048:0|t")
+			:gsub(ci_pattern('{moonkin}'), "|T136096:0|t")
+			:gsub(ci_pattern('{spriest}'), "|T136200:0|t")
 
 		if not isClassic then
 			text = text:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
@@ -2273,6 +2276,9 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{druid}'), LOCALIZED_CLASS_NAMES_MALE["DRUID"])
 			:gsub(ci_pattern('{shaman}'), LOCALIZED_CLASS_NAMES_MALE["SHAMAN"])
 			:gsub(ci_pattern('{page}'), "")
+			:gsub(ci_pattern('{elemental}'), "Elemental Shaman")
+			:gsub(ci_pattern('{moonkin}'), "Moonkin")
+			:gsub(ci_pattern('{spriest}'), "Shadow Priest")
 
 		if not isClassic then
 			output = output:gsub(ci_pattern('|cdeathknight'), "")
