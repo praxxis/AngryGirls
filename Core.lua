@@ -1784,8 +1784,6 @@ function AngryAssign:CreateDisplay()
 	pagination:SetPoint("TOPRIGHT", -4, -4)
 	pagination:SetHeight(1)
 	pagination:SetWidth(1)
-	pagination:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background" })
-	pagination:SetBackdropColor(0, 1, 0, 1)
 	self.pagination = pagination
 
 	local paginationText = pagination:CreateFontString()
