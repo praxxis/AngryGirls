@@ -404,9 +404,8 @@ function AngryAssign:SendDisplayMessage(id)
 		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil })
 	else
 		if not page.UpdateId then
-			page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
+			self:RehashPage(id)
 		end
-
 		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId })
 	end
 end
@@ -1086,8 +1085,13 @@ function AngryAssign:CreateVariablesWindow()
 
 	window:SetCallback("OnClose", function()
 		AngryAssign:SaveVariables(text:GetText())
-		if AngryAssign:SelectedId() then
-			AngryAssign_DisplayPage()
+		local id = AngryAssign:SelectedId()
+		if id then
+			self:RehashPage(id)
+			AngryAssign:DisplayPage(id)
+			if AngryAssign_State.displayed == id then
+				self:UpdateDisplayed()
+			end
 		end
 	end)
 	window:SetCallback("OnShow", function() text:SetText(AngryAssign:VariablesToString()) end)
@@ -1356,9 +1360,11 @@ function AngryAssign:UpdateSelected(destructive)
 	if permission then
 		self.window.button_add:SetDisabled(false)
 		self.window.button_clear:SetDisabled(false)
+		self.window.button_variables:SetDisabled(false)
 	else
 		self.window.button_add:SetDisabled(true)
 		self.window.button_clear:SetDisabled(true)
+		self.window.button_variables:SetDisabled(true)
 	end
 end
 
@@ -1431,7 +1437,7 @@ function AngryAssign:RenamePage(id, name)
 
 	page.Name = name
 	page.Updated = time()
-	page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
+	self:RehashPage(id)
 
 	self:SendPage(id, true)
 	self:UpdateTree()
@@ -1459,6 +1465,12 @@ function AngryAssign:TouchPage(id)
 	if not page then return end
 
 	page.Updated = time()
+end
+
+function AngryAssign:RehashPage(id)
+	local page = self:Get(id)
+	if not page then return end
+	page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
 end
 
 function AngryAssign:CreateCategory(name)
@@ -1548,7 +1560,7 @@ function AngryAssign:UpdateContents(id, value)
 	page.Contents = new_content
 	page.Backup = new_content
 	page.Updated = time()
-	page.UpdateId = self:Hash(page.Name, page.Contents, AngryAssign:VariablesToString())
+	self:RehashPage(id)
 
 	self:SendPage(id, true)
 	self:UpdateSelected(true)
