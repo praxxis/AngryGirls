@@ -1,1 +1,4 @@
 package-as: AngryGirls
+
+ignore:
+  - images

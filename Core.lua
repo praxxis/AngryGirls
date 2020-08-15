@@ -14,8 +14,8 @@ BINDING_NAME_AngryAssign_SHOW_DISPLAY = "Show Display"
 BINDING_NAME_AngryAssign_HIDE_DISPLAY = "Hide Display"
 BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 
-local AngryAssign_Version = '@v1.0.0'
-local AngryAssign_Timestamp = '@20200716042069'
+local AngryAssign_Version = '@project-version@'
+local AngryAssign_Timestamp = '@project-date-integer@'
 
 local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 
@@ -324,7 +324,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 
 		if localTimestamp ~= "dev" and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then
-			self:Print("Your version of Angry Girls is out of date! Download the latest version from curse.com.")
+			self:Print("Your version of Angry Girls is out of date! Download the latest version from https://www.curseforge.com/wow/addons/angry-girls.")
 			warnedOOD = true
 		end
 
