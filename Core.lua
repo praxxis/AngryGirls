@@ -1059,7 +1059,7 @@ function AngryAssign:CreateVariablesWindow()
 	window:Hide()
 
 	window:SetTitle("Variables")
-	window:SetStatusText("Enter a string and what that string should be replaced with, one per line")
+	window:SetStatusText("")
 	window:SetLayout("Flow")
 	window.frame:SetMinResize(750, 400)
 	window.frame:SetFrameStrata("HIGH")
@@ -1072,16 +1072,18 @@ function AngryAssign:CreateVariablesWindow()
 	AngryAssign_VariablesWindow = window.frame
 	tinsert(UISpecialFrames, "AngryAssign_VariablesWindow")
 
+	local helpLabel = AceGUI:Create("Label")
+	helpLabel:SetText("Enter a string and what that string should be replaced with, one per line. Press Accept to update the variables and re-publish the currently selected page.")
+	helpLabel:SetWidth(500)
+	window:AddChild(helpLabel)
+
 	local text = AceGUI:Create("MultiLineEditBox")
 	text:SetLabel(nil)
 	text:SetFullWidth(true)
 	text:SetFullHeight(true)
-	text:DisableButton(true)
 	text:SetText(AngryAssign:VariablesToString())
 
-	window:AddChild(text)
-
-	window:SetCallback("OnClose", function()
+	text:SetCallback("OnEnterPressed", function()
 		AngryAssign:SaveVariables(text:GetText())
 		local id = AngryAssign:SelectedId()
 		if id then
@@ -1092,6 +1094,9 @@ function AngryAssign:CreateVariablesWindow()
 			end
 		end
 	end)
+
+	window:AddChild(text)
+
 	window:SetCallback("OnShow", function() text:SetText(AngryAssign:VariablesToString()) end)
 end
 
