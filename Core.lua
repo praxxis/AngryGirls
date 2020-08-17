@@ -2075,6 +2075,8 @@ function AngryAssign:UpdateDisplayed()
 
 		local highlightHex = self:GetConfig('highlightColor')
 
+		text = AngryAssign:ReplaceVariables(text)
+
 		text = text:gsub("||", "|")
 			:gsub(ci_pattern('|cblue'), "|cff00cbf4")
 			:gsub(ci_pattern('|cgreen'), "|cff0adc00")
@@ -2156,8 +2158,6 @@ function AngryAssign:UpdateDisplayed()
 				:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
 		end
 
-		text = AngryAssign:ReplaceVariables(text)
-
 		self.display_text:Clear()
 
 		local pages = explode("{page}", text)
@@ -2215,6 +2215,8 @@ function AngryAssign:OutputDisplayed(id)
 	end
 	if channel and page then
 		local output = page.Contents
+
+		output = AngryAssign:ReplaceVariables(output)
 
 		output = output:gsub("||", "|")
 			:gsub(ci_pattern('|r'), "")
@@ -2286,8 +2288,6 @@ function AngryAssign:OutputDisplayed(id)
 				:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
 				:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
 		end
-
-		output = AngryAssign:ReplaceVariables(output)
 
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
