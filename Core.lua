@@ -108,6 +108,51 @@ function DBG_dump(o)
 end
 --@end-debug@
 
+--@alpha@
+local dbgMessageShown = false
+local function dbg(msg, data)
+	if ViragDevTool_AddData then
+		ViragDevTool_AddData(data, msg)
+	else
+		if not dbgMessageShown then
+			print("Please install ViragDevTool from http://mods.curse.com/addons/wow/varrendevtool to view debug info for Angry Girls.")
+			dbgMessageShown = true
+		end
+	end
+end
+--@end-alpha@
+
+local waitTable = {};
+local waitFrame = nil;
+
+function AngryAssign_wait(delay, func, ...)
+  if(type(delay)~="number" or type(func)~="function") then
+    return false;
+  end
+  if(waitFrame == nil) then
+    waitFrame = CreateFrame("Frame","WaitFrame", UIParent);
+    waitFrame:SetScript("onUpdate",function (self,elapse)
+      local count = #waitTable;
+      local i = 1;
+      while(i<=count) do
+        local waitRecord = tremove(waitTable,i);
+        local d = tremove(waitRecord,1);
+        local f = tremove(waitRecord,1);
+        local p = tremove(waitRecord,1);
+        if(d>elapse) then
+          tinsert(waitTable,i,{d-elapse,f,p});
+          i = i + 1;
+        else
+          count = count - 1;
+          f(unpack(p));
+        end
+      end
+    end);
+  end
+  tinsert(waitTable,{delay,func,{...}});
+  return true;
+end
+
 local function explode(seperator, content)
 	local t, position
 	t = {}
@@ -196,6 +241,10 @@ function AngryAssign:ReceiveMessage(prefix, data, channel, sender)
 
 	if not two then error("Error decompressing: " .. message); return end
 
+	--@alpha@
+	dbg("AG Deserialized data", {sender, two})
+	--@end-alpha@
+
 	local success, final = libS:Deserialize(two) -- Deserialize the decompressed data
 	if not success then error("Error deserializing " .. final); return end
 
@@ -218,7 +267,9 @@ function AngryAssign:SendOutMessage(data, channel, target)
 
 	if not channel then return end
 
-	-- self:Print("Sending "..data[COMMAND].." over "..channel.." to "..tostring(target))
+	--@alpha@
+	dbg("AG Send Message "..data[COMMAND], {target, channel, data, string.len(final)})
+	--@end-alpha@
 	self:SendCommMessage(comPrefix, final, channel, target, "NORMAL")
 	return true
 end
@@ -227,7 +278,10 @@ function AngryAssign:ProcessMessage(sender, data)
 	local cmd = data[COMMAND]
 	sender = EnsureUnitFullName(sender)
 
-	-- self:Print("Received "..data[COMMAND].." from "..sender)
+	--@alpha@
+	dbg("AG Process "..cmd, {sender, data})
+	--@end-alpha@
+
 	if cmd == "PAGE" then
 		if sender == PlayerFullName() then return end
 		if not self:PermissionCheck(sender) then
@@ -952,7 +1006,11 @@ function AngryAssign:CreateWindow()
 	button_display:SetHeight(22)
 	button_display:ClearAllPoints()
 	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 4)
-	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
+	button_display:SetCallback("OnClick", function ()
+		AngryAssign_DisplayPage()
+		button_display:SetDisabled(true)
+		AngryAssign_wait(5, function () button_display:SetDisabled(false) end)
+	end)
 	tree:AddChild(button_display)
 	window.button_display = button_display
 
