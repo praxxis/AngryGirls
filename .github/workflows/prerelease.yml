@@ -1,11 +1,10 @@
 # this is derived from https://github.com/BigWigsMods/packager/wiki/GitHub-Actions-workflow
-name: Release packages to Curse and GitHub
+name: Pre-release packages to Curse
 
 on:
   push:
     tags:
-      - "v*.*.*"
-      - "!v*.*.*-*"
+      - "v*.*.*-*"
 
 jobs:
   release:
@@ -13,7 +12,6 @@ jobs:
 
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
-      GITHUB_OAUTH: ${{ secrets.GH_OAUTH }}
 
     steps:
       - name: Clone project
