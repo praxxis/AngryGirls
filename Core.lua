@@ -1,10 +1,10 @@
 local AngryAssign = LibStub("AceAddon-3.0"):NewAddon("AngryGirls", "AceConsole-3.0", "AceEvent-3.0", "AceComm-3.0", "AceTimer-3.0")
 local AceGUI = LibStub("AceGUI-3.0")
-local libS = LibStub("AceSerializer-3.0")
-local libC = LibStub("LibCompress")
 local lwin = LibStub("LibWindow-1.1")
-local libCE = libC:GetAddonEncodeTable()
 local LSM = LibStub("LibSharedMedia-3.0")
+
+local LibSerialize = LibStub("LibSerialize")
+local LibDeflate = LibStub("LibDeflate")
 
 BINDING_HEADER_AngryAssign = "Angry Girls"
 BINDING_NAME_AngryAssign_WINDOW = "Toggle Window"
@@ -19,7 +19,7 @@ local AngryAssign_Timestamp = '@project-date-integer@'
 
 local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 
-local protocolVersion = 2
+local protocolVersion = 3
 local comPrefix = "AngryGirls"..protocolVersion
 local updateFrequency = 2
 local pageLastUpdate = {}
@@ -235,26 +235,21 @@ end
 function AngryAssign:ReceiveMessage(prefix, data, channel, sender)
 	if prefix ~= comPrefix then return end
 
-	local one = libCE:Decode(data) -- Decode the compressed data
-
-	local two, message = libC:Decompress(one) -- Decompress the decoded data
-
-	if not two then error("Error decompressing: " .. message); return end
-
-	--@alpha@
-	dbg("AG Deserialized data", {sender, two})
-	--@end-alpha@
-
-	local success, final = libS:Deserialize(two) -- Deserialize the decompressed data
-	if not success then error("Error deserializing " .. final); return end
+    local decoded = LibDeflate:DecodeForWoWAddonChannel(data)
+    if not decoded then return end
+    local decompressed = LibDeflate:DecompressDeflate(decoded)
+    if not decompressed then return end
+    local success, final = LibSerialize:Deserialize(decompressed)
+    if not success then return end
 
 	self:ProcessMessage( sender, final )
 end
 
 function AngryAssign:SendOutMessage(data, channel, target)
-	local one = libS:Serialize( data )
-	local two = libC:CompressHuffman(one)
-	local final = libCE:Encode(two)
+    local serialized = LibSerialize:Serialize(data)
+    local compressed = LibDeflate:CompressDeflate(serialized)
+    local encoded = LibDeflate:EncodeForWoWAddonChannel(compressed)
+
 	if not channel then
 		if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
 			channel = "INSTANCE_CHAT"
@@ -268,9 +263,9 @@ function AngryAssign:SendOutMessage(data, channel, target)
 	if not channel then return end
 
 	--@alpha@
-	dbg("AG Send Message "..data[COMMAND], {target, channel, data, string.len(final)})
+	dbg("AG Send Message "..data[COMMAND], {target, channel, data, string.len(encoded)})
 	--@end-alpha@
-	self:SendCommMessage(comPrefix, final, channel, target, "NORMAL")
+	self:SendCommMessage(comPrefix, encoded, channel, target, "BULK")
 	return true
 end
 
