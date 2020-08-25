@@ -2,7 +2,7 @@ local AngryAssign = LibStub("AceAddon-3.0"):NewAddon("AngryGirls", "AceConsole-3
 local AceGUI = LibStub("AceGUI-3.0")
 local lwin = LibStub("LibWindow-1.1")
 local LSM = LibStub("LibSharedMedia-3.0")
-
+local libC = LibStub("LibCompress")
 local LibSerialize = LibStub("LibSerialize")
 local LibDeflate = LibStub("LibDeflate")
 

@@ -10,6 +10,7 @@
   <Include file="libs\AceEvent-3.0\AceEvent-3.0.xml"/>
   <Include file="libs\LibSharedMedia-3.0\lib.xml"/>
   <Include file="libs\AceGUI-3.0-SharedMediaWidgets\widget.xml"/>
+  <Include file="libs\LibCompress\lib.xml"/>
   <Include file="libs\LibSerialize-1.1.0\LibSerialize.lua"/>
   <Include file="libs\LibDeflate\LibDeflate.lua"/>
   <Script file="libs\LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua"/>
