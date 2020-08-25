@@ -21,7 +21,7 @@ local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 
 local protocolVersion = 3
 local comPrefix = "AngryGirls"..protocolVersion
-local updateFrequency = 2
+local updateThrottle = 4
 local pageLastUpdate = {}
 local pageTimerId = {}
 local displayLastUpdate = nil
@@ -121,37 +121,6 @@ local function dbg(msg, data)
 	end
 end
 --@end-alpha@
-
-local waitTable = {};
-local waitFrame = nil;
-
-function AngryAssign_wait(delay, func, ...)
-  if(type(delay)~="number" or type(func)~="function") then
-    return false;
-  end
-  if(waitFrame == nil) then
-    waitFrame = CreateFrame("Frame","WaitFrame", UIParent);
-    waitFrame:SetScript("onUpdate",function (self,elapse)
-      local count = #waitTable;
-      local i = 1;
-      while(i<=count) do
-        local waitRecord = tremove(waitTable,i);
-        local d = tremove(waitRecord,1);
-        local f = tremove(waitRecord,1);
-        local p = tremove(waitRecord,1);
-        if(d>elapse) then
-          tinsert(waitTable,i,{d-elapse,f,p});
-          i = i + 1;
-        else
-          count = count - 1;
-          f(unpack(p));
-        end
-      end
-    end);
-  end
-  tinsert(waitTable,{delay,func,{...}});
-  return true;
-end
 
 local function explode(seperator, content)
 	local t, position
@@ -393,12 +362,12 @@ function AngryAssign:SendPage(id, force)
 	local timerId = pageTimerId[id]
 	local curTime = time()
 
-	if lastUpdate and (curTime - lastUpdate <= updateFrequency) then
+	if lastUpdate and (curTime - lastUpdate <= updateThrottle) then
 		if not timerId then
 			if force then
 				self:SendPageMessage(id)
 			else
-				pageTimerId[id] = self:ScheduleTimer("SendPageMessage", updateFrequency - (curTime - lastUpdate), id)
+				pageTimerId[id] = self:ScheduleTimer("SendPageMessage", updateThrottle - (curTime - lastUpdate), id)
 			end
 		elseif force then
 			self:CancelTimer( timerId )
@@ -426,12 +395,12 @@ end
 function AngryAssign:SendDisplay(id, force)
 	local curTime = time()
 
-	if displayLastUpdate and (curTime - displayLastUpdate <= updateFrequency) then
+	if displayLastUpdate and (curTime - displayLastUpdate <= updateThrottle) then
 		if not displayTimerId then
 			if force then
 				self:SendDisplayMessage(id)
 			else
-				displayTimerId = self:ScheduleTimer("SendDisplayMessage", updateFrequency - (curTime - displayLastUpdate), id)
+				displayTimerId = self:ScheduleTimer("SendDisplayMessage", updateThrottle - (curTime - displayLastUpdate), id)
 			end
 		elseif force then
 			self:CancelTimer( displayTimerId )
@@ -467,12 +436,12 @@ end
 function AngryAssign:SendVersion(force)
 	local curTime = time()
 
-	if versionLastUpdate and (curTime - versionLastUpdate <= updateFrequency) then
+	if versionLastUpdate and (curTime - versionLastUpdate <= updateThrottle) then
 		if not versionTimerId then
 			if force then
 				self:SendVersionMessage(id)
 			else
-				versionTimerId = self:ScheduleTimer("SendVersionMessage", updateFrequency - (curTime - versionLastUpdate), id)
+				versionTimerId = self:ScheduleTimer("SendVersionMessage", updateThrottle - (curTime - versionLastUpdate), id)
 			end
 		elseif force then
 			self:CancelTimer( versionTimerId )
@@ -1004,7 +973,11 @@ function AngryAssign:CreateWindow()
 	button_display:SetCallback("OnClick", function ()
 		AngryAssign_DisplayPage()
 		button_display:SetDisabled(true)
-		AngryAssign_wait(5, function () button_display:SetDisabled(false) end)
+		button_display:SetText("Sending...")
+		self:ScheduleTimer(function ()
+			button_display:SetDisabled(false)
+			button_display:SetText("Send and Display")
+		end, updateThrottle)
 	end)
 	tree:AddChild(button_display)
 	window.button_display = button_display
@@ -2556,7 +2529,7 @@ function AngryAssign:OnInitialize()
 					if (IsInRaid() or IsInGroup()) then
 						versionList = {} -- start with a fresh version list, when displaying it
 						self:SendOutMessage({ "VER_QUERY" })
-						self:ScheduleTimer("VersionCheckOutput", 3)
+						self:ScheduleTimer("VersionCheckOutput", updateThrottle)
 						self:Print("Version check running...")
 					else
 						self:Print("You must be in a raid group to run the version check.")
@@ -2832,12 +2805,6 @@ function AngryAssign:PARTY_LEADER_CHANGED()
 	end
 end
 
-function AngryAssign:PARTY_CONVERTED_TO_RAID()
-	self:SendRequestDisplay()
-	self:SendVerQuery()
-	self:UpdateDisplayedIfNewGroup()
-end
-
 function AngryAssign:GROUP_JOINED()
 	self:SendVerQuery()
 	self:UpdateDisplayedIfNewGroup()
@@ -2882,7 +2849,6 @@ function AngryAssign:AfterEnable()
 		self:ClearDisplayed()
 	end
 
-	--self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
