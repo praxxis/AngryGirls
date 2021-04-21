@@ -1,4 +1,4 @@
-## Interface: 80300
+## Interface: 11307 
 ## Title: Angry Girls
 ## Author: Ermad
 ## Version: v1.14.0
