@@ -1,3 +1,7 @@
+## Angry Girls v2.0.2
+
+* TBC Classic support
+
 ## Angry Girls v2.0.0
 
 * Switched to libDeflate and libSerialize, cutting the wire size of assignments by 40-50%.

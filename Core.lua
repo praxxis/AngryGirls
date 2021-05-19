@@ -17,7 +17,7 @@ BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
 
-local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 
 local protocolVersion = 3
 local comPrefix = "AngryGirls"..protocolVersion
@@ -1693,7 +1693,7 @@ function AngryAssign:CreateDisplay()
 	paginationText:SetPoint("TOPRIGHT")
 	self.paginationText = paginationText
 
-	local mover = CreateFrame("Frame", "AngryAssMover", frame)
+	local mover = CreateFrame("Frame", "AngryAssMover", frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
 	mover:SetFrameLevel(clickOverlay:GetFrameLevel() + 10)
 	mover:SetPoint("LEFT",0,0)
 	mover:SetPoint("RIGHT",0,0)
